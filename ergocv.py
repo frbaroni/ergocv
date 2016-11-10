@@ -1,4 +1,4 @@
-#/usr/bin/python3
+#!/usr/bin/python3
 import sys
 import getopt
 import flask
@@ -9,7 +9,7 @@ DEFAULT_PORT = 35275 # Flask in Phone Keypad
 app = flask.Flask(__name__)
 @app.route('/')
 def index():
-    return flask.render_template('./static/app.html')
+    return flask.render_template('app.html')
 
 ergoCv = ecv.ErgoCV()
 
