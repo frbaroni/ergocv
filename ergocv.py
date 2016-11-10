@@ -34,7 +34,7 @@ def main(argv):
         elif opt in ("-e", "--ecv-debug"):
             print("ErgoCV debug enabled")
             ergoCv = ErgoCVCore()
-            ergoCv.debug()
+            ergoCv.run_debug()
             sys.exit(0)
         elif opt in ("-p", "--port"):
             port = arg

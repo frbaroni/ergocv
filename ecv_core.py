@@ -4,11 +4,9 @@ class ErgoCVCore:
     def __init__(self):
         self.webcam = cv2.VideoCapture(0)
         self.hasWindows = False
-        self.debug_mode = False
-        self.position = None
-        self.faces = []
+        self.ergoPosition = None
+        self.currentPosition = None
         self.img = None
-        self.tick = 400
         self.haarFace = cv2.CascadeClassifier('./haar/haarcascade_frontalface_default.xml')
 
     def __del__(self): 
@@ -16,14 +14,14 @@ class ErgoCVCore:
         if self.hasWindows:
             cv2.destroyAllWindows()
 
-    def setPosition(self, position):
-        self.position = position
+    def setErgoPosition(self, ergoPosition):
+        self.ergoPosition = ergoPosition
 
-    def getPosition(self, position):
-        return self.position
+    def getErgoPosition(self, ergoPosition):
+        return self.ergoPosition
 
-    def getFaces(self):
-        return self.faces
+    def getCurrentPosition(self):
+        return self.currentPosition
 
     def getImage(self, toExtension):
         return self.convert(self.img, toExtension)
@@ -56,39 +54,40 @@ class ErgoCVCore:
         faces = self.haarFace.detectMultiScale(img_gray)
         return faces
 
-    def haarRect(self, img, dimensions, color = (255, 255, 255), tickness = 3):
+    def drawRect(self, img, dimensions, color = (255, 255, 255), tickness = 3):
         (left, top, width, height) = dimensions
         right = left + width
         bottom = top + height
         cv2.rectangle(img, (left, top), (right, bottom), color, tickness)
 
-    def check(self, face):
-        diff = face - self.position
-        if abs(diff[0]) > 30 or abs(diff[3]) > 20:
-            print('Bad Ergo {0}'.format(diff))
-        else:
-            print('Ergo Ok {0}'.format(diff))
+    def good_position(self):
+        diff = self.currentPosition - self.ergoPosition
+        return not (abs(diff[0]) > 30 or abs(diff[3]) > 20)
 
-    def run(self):
+    def update(self):
+        img = self.capture()
+        if img is not None:
+            faces = self.detectFaces(img)
+            if len(faces) == 1:
+                self.currentPosition = faces[0]
+                if self.ergoPosition is None:
+                    self.ergoPosition = faces[0]
+                self.drawRect(img, self.ergoPosition, (255, 0, 0), 8)
+                self.drawRect(img, self.currentPosition, (0, 0, 255), 2)
+                self.img = img
+
+
+    def run_debug(self):
         key = ''
         while key != 'q':
-            key = self.keyPressed(self.tick)
-            img = self.capture()
-            if img is not None:
-                faces = self.detectFaces(img)
-                if self.position is not None:
-                    self.haarRect(img, self.position, (255, 0, 0), 8)
-                for face in faces:
-                    self.haarRect(img, face, (0, 0, 255), 2)
-                    if (self.position is None) or (key == 'a'):
-                        self.position = face
-                    self.check(face)
-                    self.img = img
-                    self.faces = faces
-                if self.debug_mode:
-                    self.show('Debug, [a] to adjust, [q] to exit', img)
-
-    def debug(self):
-        self.debug_mode = True
-        self.run()
+            key = self.keyPressed(60)
+            self.update()
+            if key == 'a':
+                self.ergoPosition = self.currentPosition
+            print('{0} ergo: {1} current: {2}'.format(
+                "GOOD" if self.good_position() else "BAD",
+                self.ergoPosition,
+                self.currentPosition
+                ))
+            self.show('Debug, [a] to adjust, [q] to exit', self.img)
 

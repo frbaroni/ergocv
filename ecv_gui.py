@@ -2,6 +2,7 @@
 import flask
 from ecv_core import ErgoCVCore
 
+
 app = flask.Flask(__name__)
 
 @app.route('/')
