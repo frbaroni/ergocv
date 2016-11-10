@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 import flask
-from ecv_core import ErgoCVCore
-
+from ecv_core import ErgoCV
 
 app = flask.Flask(__name__)
 

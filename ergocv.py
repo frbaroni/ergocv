@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import sys
 import getopt
-from ecv_core import ErgoCVCore
+from ecv_core import ErgoCV
 from ecv_gui import run_gui
 
 DEFAULT_PORT = 35275 # Flask in Phone Keypad
@@ -33,7 +33,7 @@ def main(argv):
             debug = True
         elif opt in ("-e", "--ecv-debug"):
             print("ErgoCV debug enabled")
-            ergoCv = ErgoCVCore()
+            ergoCv = ErgoCV()
             ergoCv.run_debug()
             sys.exit(0)
         elif opt in ("-p", "--port"):

@@ -1,6 +1,52 @@
 import cv2
+import threading
 
-class ErgoCVCore:
+class ErgoCVBase:
+    """
+        Base interface
+    """
+    def __init__(self, camera_index):
+        """
+            Initialize with given camera index
+        """
+        pass
+    def setErgoPosition(self, ergoPosition):
+        """
+            Set the ergonomic position, where the detected face will be
+            matched against.
+        """
+        pass
+    def getErgoPosition(self):
+        """
+            Get the ergonomic position, where the detected face will be
+            matched against.
+        """
+        pass
+    def getPosition(self):
+        """
+            Return the last detected face position.
+        """
+        pass
+    def getImage(self, toExtension):
+        """
+            Return the last valid image, containing the face and ergo
+            rectangle markers.
+        """
+        pass
+    def good_position(self):
+        """
+            Return if the last valid position was inside the ergonomic
+            position.
+        """
+        pass
+    def update(self):
+        """
+            Capture new image and try to find a face in it,
+            validating if the ergo is in good position.
+        """
+        pass
+
+class ErgoCV(ErgoCVBase):
     def __init__(self):
         self.webcam = cv2.VideoCapture(0)
         self.hasWindows = False
@@ -91,3 +137,55 @@ class ErgoCVCore:
                 ))
             self.show('Debug, [a] to adjust, [q] to exit', self.img)
 
+class ErgoCVThread(threading.Thread):
+    def __init__(self, ergoCV, tick_delay):
+        threading.Thread.__init__(self)
+        self.tick_delay = tick_delay
+        self.terminated = False
+        self.ergoCV = ergoCV
+
+    def run(self):
+        while not self.terminated:
+            ergoCV.update()
+            print('{0} ergo: {1} current: {2}'.format(
+                "GOOD" if ergoCV.good_position() else "BAD",
+                ergoCV.getErgoPosition(),
+                ergoCV.getCurrentPosition()
+                ))
+            time.sleep(self.tick_delay)
+
+class ErgoCVThreaded(ErgoCVBase):
+    def __init__(self, camera_index, tick_delay):
+        self.ergoCV = ErgoCV(camera_index)
+        self.lock = threading.RLock()
+        self.thread = ErgoCVThread(ergoCV, tick_delay)
+    
+    def lockedScope(self, fn):
+        self.lock.acquire()
+        fn()
+        self.lock.release()
+
+    def start(self):
+        self.thread.start()
+
+    def setErgoPosition(self, ergoPosition):
+        self.lockedScope(lambda: self.ergoCV.setErgoPosition(ergoPosition))
+        pass
+
+    def getErgoPosition(self):
+        pass
+
+    def getPosition(self):
+        pass
+
+    def setTickDelay(self, tick_delay):
+        self.thread.tick_delay = tick_delay
+
+    def getImage(self, toExtension):
+        pass
+
+    def good_position(self):
+        pass
+
+    def update(self):
+        pass
