@@ -1,6 +1,6 @@
 import cv2
 
-class ErgoCV:
+class ErgoCVCore:
     def __init__(self):
         self.webcam = cv2.VideoCapture(0)
         self.hasWindows = False
@@ -30,7 +30,10 @@ class ErgoCV:
 
     def capture(self):
         ret, img = self.webcam.read()
-        return img
+        if ret:
+            return img
+        else:
+            return None
 
     def window(self, name):
         return 'ErgoCV - {0}'.format(name)
@@ -69,20 +72,21 @@ class ErgoCV:
     def run(self):
         key = ''
         while key != 'q':
-            img = self.capture()
-            faces = self.detectFaces(img)
-            if self.position is not None:
-                self.haarRect(img, self.position, (255, 0, 0), 8)
-            for face in faces:
-                self.haarRect(img, face, (0, 0, 255), 2)
-                if (self.position is None) or (key == 'a'):
-                    self.position = face
-                self.check(face)
-                self.img = img
-                self.faces = faces
-            if self.debug_mode:
-                self.show('Faces & Eyes, [a] to adjust, [q] to exit', img)
             key = self.keyPressed(self.tick)
+            img = self.capture()
+            if img is not None:
+                faces = self.detectFaces(img)
+                if self.position is not None:
+                    self.haarRect(img, self.position, (255, 0, 0), 8)
+                for face in faces:
+                    self.haarRect(img, face, (0, 0, 255), 2)
+                    if (self.position is None) or (key == 'a'):
+                        self.position = face
+                    self.check(face)
+                    self.img = img
+                    self.faces = faces
+                if self.debug_mode:
+                    self.show('Debug, [a] to adjust, [q] to exit', img)
 
     def debug(self):
         self.debug_mode = True
