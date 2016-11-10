@@ -10,11 +10,20 @@
     <meta name="author" content="Fernando Rodrigues Baroni">
 
     <link rel="stylesheet" href="/static/bootstrap.min.css">
+    <script src="/static/jquery-3.1.1.min.js"></script>
     <script src="/static/bootstrap.min.js"></script>
+    <script>
+        function updateImg() {
+            $('#img').attr('src', '/image?' + (new Date()).toISOString());
+            setTimeout(updateImg, 100);
+        }
+        updateImg();
+    </script>
 </head>
 <body>
     <div class="container-fluid">
         <span class="text text-danger">Hello!</span>
+        <img id="img"/>
     </div>
 </body>
 </html>
