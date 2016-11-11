@@ -1,61 +1,17 @@
 import cv2
-
-class ErgoCVBase:
-    """
-        Base interface
-    """
-    def __init__(self, camera_index):
-        """
-            Initialize with given camera index
-        """
-        pass
-    def setErgoPosition(self, ergoPosition):
-        """
-            Set the ergonomic position, where the detected face will be
-            matched against.
-        """
-        pass
-    def getErgoPosition(self):
-        """
-            Get the ergonomic position, where the detected face will be
-            matched against.
-        """
-        pass
-    def getCurrentPosition(self):
-        """
-            Return the last detected face position.
-        """
-        pass
-    def getImage(self, toExtension):
-        """
-            Return the last valid image, containing the face and ergo
-            rectangle markers.
-        """
-        pass
-    def good_position(self):
-        """
-            Return if the last valid position was inside the ergonomic
-            position.
-        """
-        pass
-    def update(self):
-        """
-            Capture new image and try to find a face in it,
-            validating if the ergo is in good position.
-        """
-        pass
+from ecv_base import ErgoCVBase
 
 class ErgoCV(ErgoCVBase):
     def __init__(self, camera_index):
-        self.webcam = cv2.VideoCapture(camera_index)
+        self.camera_index = camera_index
         self.hasWindows = False
         self.ergoPosition = None
+        self.goodErgonomic = False
         self.currentPosition = None
         self.img = None
         self.haarFace = cv2.CascadeClassifier('./haar/haarcascade_frontalface_default.xml')
 
     def __del__(self): 
-        self.webcam.release()
         if self.hasWindows:
             cv2.destroyAllWindows()
 
@@ -71,22 +27,25 @@ class ErgoCV(ErgoCVBase):
     def getImage(self, toExtension):
         return self.convert(self.img, toExtension)
 
+    def setCameraIndex(self, camera_index):
+        self.camera_index = camera_index
+
+    def getCameraIndex(self):
+        return self.camera_index
+
     def capture(self):
-        ret, img = self.webcam.read()
-        if ret:
-            return img
-        else:
+        try:
+            webcam = cv2.VideoCapture(self.camera_index)
+            ret, img = webcam.read()
+            webcam.release()
+            if ret:
+                return img
+        except:
             return None
 
-    def window(self, name):
-        return 'ErgoCV - {0}'.format(name)
-
     def show(self, name, img):
-        cv2.imshow(self.window(name), img)
+        cv2.imshow(name, img)
         self.hasWindows = True
-
-    def close(self, name):
-        cv2.destroyWindow(self.window(name))
 
     def convert(self, img, toExtension):
         return cv2.imencode(toExtension, img)
@@ -105,9 +64,8 @@ class ErgoCV(ErgoCVBase):
         bottom = top + height
         cv2.rectangle(img, (left, top), (right, bottom), color, tickness)
 
-    def good_position(self):
-        diff = self.currentPosition - self.ergoPosition
-        return not (abs(diff[0]) > 30 or abs(diff[3]) > 20)
+    def isGoodErgonomic(self):
+        return self.goodErgonomic
 
     def update(self):
         img = self.capture()
@@ -120,20 +78,22 @@ class ErgoCV(ErgoCVBase):
                 self.drawRect(img, self.ergoPosition, (255, 0, 0), 8)
                 self.drawRect(img, self.currentPosition, (0, 0, 255), 2)
                 self.img = img
+                diff = self.currentPosition - self.ergoPosition
+                self.goodErgonomic = not (abs(diff[0]) > 30 or abs(diff[3]) > 20)
 
 
     def run_debug(self):
         key = ''
         while key != 'q':
-            key = self.keyPressed(60)
+            key = self.keyPressed(500)
             self.update()
             if key == 'a':
                 self.ergoPosition = self.currentPosition
             if self.currentPosition is not None:
                 print('{0} ergo: {1} current: {2}'.format(
-                    "GOOD" if self.good_position() else "BAD",
+                    "GOOD" if self.isGoodErgonomic() else "BAD",
                     self.ergoPosition,
                     self.currentPosition
                     ))
             if self.img is not None:
-                self.show('Debug, [a] to adjust, [q] to exit', self.img)
+                self.show('ErgoCV - Debug, [a] to adjust, [q] to exit', self.img)

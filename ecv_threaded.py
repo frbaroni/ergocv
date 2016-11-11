@@ -1,14 +1,15 @@
 import time
 import threading
 import cv2
-from ecv_core import ErgoCVBase, ErgoCV
+from ecv_base import ErgoCVBase
+from ecv_core import ErgoCV
 
 class ErgoCVThreaded(ErgoCVBase):
     class Container(threading.Thread):
-        def __init__(self, ergoCV, tick_delay):
+        def __init__(self, ergoCV):
             self.lock = threading.RLock()
             threading.Thread.__init__(self)
-            self.tick_delay = tick_delay
+            self.tick_delay = 1
             self.terminated = False
             self.ergoCV = ergoCV
 
@@ -17,7 +18,7 @@ class ErgoCVThreaded(ErgoCVBase):
                 self.lock.acquire()
                 self.ergoCV.update()
                 print('{0} ergo: {1} current: {2}'.format(
-                    "GOOD" if self.ergoCV.good_position() else "BAD",
+                    "GOOD" if self.ergoCV.isGoodErgonomic() else "BAD",
                     self.ergoCV.getErgoPosition(),
                     self.ergoCV.getCurrentPosition()
                     ))
@@ -28,8 +29,12 @@ class ErgoCVThreaded(ErgoCVBase):
             self.tick_delay = tick_delay
 
     def __init__(self):
-        self.ergoCV = None
-        self.thread = None
+        self.ergoCV = ErgoCV(None)
+        self.thread = ErgoCVThreaded.Container(self.ergoCV)
+
+    def start(self, camera_index):
+        self.ergoCV.setCameraIndex(camera_index)
+        self.thread.start()
     
     def lockedDo(self, fn):
         if self.thread:
@@ -46,11 +51,6 @@ class ErgoCVThreaded(ErgoCVBase):
         else:
             return None
 
-    def start(self, camera_index, tick_delay):
-        self.ergoCV = ErgoCV(camera_index)
-        self.thread = ErgoCVThreaded.Container(self.ergoCV, tick_delay)
-        self.thread.start()
-
     def setErgoPosition(self, ergoPosition):
         self.lockedDo(lambda: self.ergoCV.setErgoPosition(ergoPosition))
 
@@ -66,8 +66,14 @@ class ErgoCVThreaded(ErgoCVBase):
     def getImage(self, toExtension):
         return self.lockedCall(lambda: self.ergoCV.getImage(toExtension))
 
-    def good_position(self):
-        return self.lockedCall(lambda: self.ergoCV.good_position())
+    def setCameraIndex(self, camera_index):
+        self.lockedDo(lambda: self.ergoCV.setCameraIndex(camera_index))
+
+    def getCameraIndex(self):
+        return self.lockedCall(lambda: self.ergoCV.getCameraIndex())
+
+    def isGoodErgonomic(self):
+        return self.lockedCall(lambda: self.ergoCV.isGoodErgonomic())
 
     def update(self):
         self.lockedDo(lambda: self.ergoCV.update())

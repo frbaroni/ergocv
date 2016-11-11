@@ -15,15 +15,49 @@
     <script>
         function updateImg() {
             $('#img').attr('src', '/image?' + (new Date()).toISOString());
-            setTimeout(updateImg, 500);
         }
-        updateImg();
+        function autoUpdateImg() {
+                    updateImg();
+                    setTimeout(autoUpdateImg, 2000);
+        }
+        //autoUpdateImg();
     </script>
 </head>
 <body>
-    <div class="container-fluid">
-        <span class="text text-danger">Hello!</span>
-        <img id="img"/>
+    <div id="content" class="container container-fluid">
+        <div class="col-md-3 form-horizontal">
+            <div class="form-group">
+                <label for="tick_delay">
+                    Frequency (ms)
+                </label>
+                <input type="number"
+                    id="tick_delay"
+                    step="10" min="100" max="600000" value="5000"
+                    class="form-control"/>
+                <span class="help-block">
+                    The amount of miliseconds between each ergonomic
+                    verification.
+                </span>
+            </div>
+            <div class="form-group">
+                <label for="camera_index">
+                    Camera 
+                </label>
+                <input type="number"
+                    id="camera_index"
+                    step="1" min="0" value="0"
+                    class="form-control"/>
+                <span class="help-block">
+                    The camera index, usually 0.
+                </span>
+            </div>
+            <button type="submit" class="btn btn-default">Save</button>
+        </div>
+        <div class="col-md-3">
+        </div>
+        <div class="col-md-6">
+            <img id="img" title="Current image"/>
+        </div>
     </div>
 </body>
 </html>

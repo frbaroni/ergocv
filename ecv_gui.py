@@ -3,9 +3,6 @@ import datetime
 import flask
 from ecv_threaded import ErgoCVThreaded
 
-camera_index = 0
-tick_delay = 0.100
-
 app = flask.Flask(__name__)
 ergoCV = ErgoCVThreaded()
 
@@ -15,7 +12,6 @@ def index():
 
 @app.route('/image', methods=['GET'])
 def image():
-    ergoCV.update()
     result, img = ergoCV.getImage('.jpg')
     response = flask.Response(img.tobytes(), mimetype="image/jpg")
     response.headers['Last-Modified'] = datetime.datetime.now()
@@ -26,5 +22,6 @@ def image():
 
 def run_gui(port, debug):
     app.config['DEBUG'] = debug
-    ergoCV.start(camera_index, tick_delay)
+    camera_index = 0
+    ergoCV.start(camera_index)
     app.run(port=port)
