@@ -15,7 +15,7 @@
     <script>
         function updateImg() {
             $('#img').attr('src', '/image?' + (new Date()).toISOString());
-            setTimeout(updateImg, 100);
+            setTimeout(updateImg, 500);
         }
         updateImg();
     </script>
