@@ -1,6 +1,11 @@
 import cv2
 from ecv_base import ErgoCVBase
 
+MAX_ERRORS = 5
+COLOR_ERGO_POSITION = (255, 0, 0)
+COLOR_ERGO_GOOD = (0, 255, 0)
+COLOR_ERGO_BAD = (0, 0, 255)
+
 class ErgoCV(ErgoCVBase):
     def __init__(self, camera_index):
         self.camera_index = camera_index
@@ -9,6 +14,7 @@ class ErgoCV(ErgoCVBase):
         self.goodErgonomic = False
         self.currentPosition = None
         self.img = None
+        self.errors = 0
         self.haarFace = cv2.CascadeClassifier('./haar/haarcascade_frontalface_default.xml')
 
     def __del__(self): 
@@ -25,7 +31,13 @@ class ErgoCV(ErgoCVBase):
         return self.currentPosition
 
     def getImage(self, toExtension):
-        return self.convert(self.img, toExtension)
+        try:
+            res, img = self.convert(self.img, toExtension)
+            if res:
+                return img
+        except:
+            pass
+        return None
 
     def setCameraIndex(self, camera_index):
         self.camera_index = camera_index
@@ -67,20 +79,37 @@ class ErgoCV(ErgoCVBase):
     def isGoodErgonomic(self):
         return self.goodErgonomic
 
+    def processImage(self, img):
+        faces = self.detectFaces(img)
+        if len(faces) == 1:
+            self.currentPosition = faces[0]
+            if self.ergoPosition is None:
+                self.ergoPosition = faces[0]
+            self.drawRect(img, self.ergoPosition, COLOR_ERGO_POSITION, 8)
+
+            diff = self.currentPosition - self.ergoPosition
+            self.goodErgonomic = not (abs(diff[0]) > 30 or abs(diff[3]) > 20)
+
+            self.drawRect(img, self.currentPosition,
+                    COLOR_ERGO_GOOD if self.goodErgonomic else COLOR_ERGO_BAD,
+                    2)
+
+            self.img = img
+            self.errors = 0
+
+    def registerError(self):
+        self.errors += 1
+        if self.errors > MAX_ERRORS:
+            self.goodErgonomic = False
+            self.img = None
+            print('Warning! Too many errors reading the video camera!')
+
     def update(self):
         img = self.capture()
         if img is not None:
-            faces = self.detectFaces(img)
-            if len(faces) == 1:
-                self.currentPosition = faces[0]
-                if self.ergoPosition is None:
-                    self.ergoPosition = faces[0]
-                self.drawRect(img, self.ergoPosition, (255, 0, 0), 8)
-                self.drawRect(img, self.currentPosition, (0, 0, 255), 2)
-                self.img = img
-                diff = self.currentPosition - self.ergoPosition
-                self.goodErgonomic = not (abs(diff[0]) > 30 or abs(diff[3]) > 20)
-
+            self.processImage(img)
+        else:
+            self.registerError()
 
     def run_debug(self):
         key = ''
@@ -91,7 +120,7 @@ class ErgoCV(ErgoCVBase):
                 self.ergoPosition = self.currentPosition
             if self.currentPosition is not None:
                 print('{0} ergo: {1} current: {2}'.format(
-                    "GOOD" if self.isGoodErgonomic() else "BAD",
+                    'GOOD' if self.isGoodErgonomic() else 'BAD',
                     self.ergoPosition,
                     self.currentPosition
                     ))
