@@ -4,8 +4,11 @@ import cv2
 from ecv_base import ErgoCVBase
 from ecv_core import ErgoCV
 
+
 class ErgoCVThreaded(ErgoCVBase):
+
     class Container(threading.Thread):
+
         def __init__(self, ergoCV):
             self.lock = threading.RLock()
             threading.Thread.__init__(self)
@@ -21,7 +24,7 @@ class ErgoCVThreaded(ErgoCVBase):
                     "GOOD" if self.ergoCV.isErgonomic() else "BAD",
                     self.ergoCV.getExpectedPosition(),
                     self.ergoCV.getFacePosition()
-                    ))
+                ))
                 self.lock.release()
                 time.sleep(self.tick_delay)
 
@@ -34,7 +37,7 @@ class ErgoCVThreaded(ErgoCVBase):
 
     def start(self):
         self.thread.start()
-    
+
     def lockedDo(self, fn):
         if self.thread:
             self.thread.lock.acquire()
@@ -75,7 +78,8 @@ class ErgoCVThreaded(ErgoCVBase):
         return self.lockedCall(lambda: self.ergoCV.loadCameras())
 
     def cameraPreview(self, index, toExtension):
-        return self.lockedCall(lambda: self.ergoCV.cameraPreview(index, toExtension))
+        return self.lockedCall(lambda:
+                                self.ergoCV.cameraPreview(index, toExtension))
 
     def isErgonomic(self):
         return self.lockedCall(lambda: self.ergoCV.isErgonomic())

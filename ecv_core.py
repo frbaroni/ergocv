@@ -7,7 +7,9 @@ COLOR_ERGO_POSITION = (255, 0, 0)
 COLOR_ERGO_GOOD = (0, 255, 0)
 COLOR_ERGO_BAD = (0, 0, 255)
 
+
 class ErgoCV(ErgoCVBase):
+
     def __init__(self):
         self.hasWindows = False
         self.camera_previews = {}
@@ -17,9 +19,11 @@ class ErgoCV(ErgoCVBase):
         self.goodErgonomic = False
         self.facePosition = None
         self.errors = 0
-        self.haarFace = cv2.CascadeClassifier('./haar/haarcascade_frontalface_default.xml')
+        self.haarFace = cv2.CascadeClassifier(
+            './haar/haarcascade_frontalface_default.xml'
+        )
 
-    def __del__(self): 
+    def __del__(self):
         if self.hasWindows:
             cv2.destroyAllWindows()
 
@@ -88,7 +92,7 @@ class ErgoCV(ErgoCVBase):
         faces = self.haarFace.detectMultiScale(img_gray)
         return faces
 
-    def drawRect(self, img, dimensions, color = (255, 255, 255), tickness = 3):
+    def drawRect(self, img, dimensions, color=(255, 255, 255), tickness=3):
         (left, top, width, height) = dimensions
         right = left + width
         bottom = top + height
@@ -105,9 +109,8 @@ class ErgoCV(ErgoCVBase):
             diff = self.facePosition - self.expectedPosition
             self.goodErgonomic = not (abs(diff[0]) > 30 or abs(diff[3]) > 20)
 
-            self.drawRect(img, self.facePosition,
-                    COLOR_ERGO_GOOD if self.goodErgonomic else COLOR_ERGO_BAD,
-                    2)
+            color = COLOR_ERGO_GOOD if self.goodErgonomic else COLOR_ERGO_BAD
+            self.drawRect(img, self.facePosition, color, 2)
 
             self.img = img
             self.errors = 0
@@ -142,6 +145,7 @@ class ErgoCV(ErgoCVBase):
                     'GOOD' if self.isErgonomic() else 'BAD',
                     self.expectedPosition,
                     self.facePosition
-                    ))
+                ))
             if self.img is not None:
-                self.show('ErgoCV - Debug, [a] to adjust, [q] to exit', self.img)
+                self.show(
+                    'ErgoCV - Debug, [a] to adjust, [q] to exit', self.img)

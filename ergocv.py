@@ -4,7 +4,8 @@ import getopt
 from ecv_core import ErgoCV
 from ecv_gui import run_gui
 
-DEFAULT_PORT = 35275 # Flask in Phone Keypad
+DEFAULT_PORT = 35275  # Flask in Phone Keypad
+
 
 def usage():
     print("""Usage: python3 ergocv.py [options]
@@ -19,13 +20,14 @@ def usage():
         enable ErgoCV debug
     """.format(DEFAULT_PORT))
 
+
 def main(argv):
     debug = False
     port = DEFAULT_PORT
 
     try:
         opts, args = getopt.getopt(argv, "hfe:p:", ["help", "flask-debug",
-            "ecv-debug=", "port="])
+                                                    "ecv-debug=", "port="])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -49,4 +51,3 @@ def main(argv):
 
 if __name__ == '__main__':
     main(sys.argv[1:])
-
