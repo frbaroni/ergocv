@@ -2,52 +2,67 @@ class ErgoCVBase:
     """
         Base interface
     """
-    def __init__(self, camera_index):
+    def setExpectedPosition(self, position):
         """
-            Initialize with given camera index.
-        """
-        pass
-    def setErgoPosition(self, ergoPosition):
-        """
-            Set the ergonomic position, where the detected face will be
-            matched against.
+            Set the expected ergonomic position, where the detected face will
+            be matched against.
         """
         pass
-    def getErgoPosition(self):
+
+    def getExpectedPosition(self):
         """
-            Get the ergonomic position, where the detected face will be
-            matched against.
+            Get the expected ergonomic position, where the detected face will
+            be matched against.
         """
         pass
-    def getCurrentPosition(self):
+    
+    def getFacePosition(self):
         """
             Return the last detected face position.
         """
         pass
-    def getImage(self, toExtension):
+
+    def getCameraImage(self, toExtension):
         """
             Return the last valid image, containing the face and ergo
             rectangle markers.
         """
         pass
-    def setCameraIndex(self, camera_index):
+
+    def setCameraIndex(self, index):
         """
             Set the camera index to fetch images.
         """
         pass
+
     def getCameraIndex(self):
         """
             Get the camera index which we use to fetch images.
         """
         pass
-    def isGoodErgonomic(self):
+    
+    def loadCameras(self):
         """
-            Return if the last ergonomic was inside the ergo position.
+            Load available camera indexes.
         """
         pass
+
+    def cameraPreview(self, index, toExtension):
+        """
+            Get the available camera image by index.
+        """
+        pass
+
+    def isErgonomic(self):
+        """
+            Return if the last detected face is in ergonomic expected position.
+        """
+        pass
+    
     def update(self):
         """
             Capture new image and try to find a face in it,
             validating if the ergo is in good position.
         """
         pass
+    

@@ -1,19 +1,21 @@
 import cv2
 from ecv_base import ErgoCVBase
 
+MAX_CAMERA_INDEX = 3
 MAX_ERRORS = 5
 COLOR_ERGO_POSITION = (255, 0, 0)
 COLOR_ERGO_GOOD = (0, 255, 0)
 COLOR_ERGO_BAD = (0, 0, 255)
 
 class ErgoCV(ErgoCVBase):
-    def __init__(self, camera_index):
-        self.camera_index = camera_index
+    def __init__(self):
         self.hasWindows = False
-        self.ergoPosition = None
+        self.camera_previews = {}
+        self.camera_index = None
+        self.camera_image = None
+        self.expectedPosition = None
         self.goodErgonomic = False
-        self.currentPosition = None
-        self.img = None
+        self.facePosition = None
         self.errors = 0
         self.haarFace = cv2.CascadeClassifier('./haar/haarcascade_frontalface_default.xml')
 
@@ -21,33 +23,52 @@ class ErgoCV(ErgoCVBase):
         if self.hasWindows:
             cv2.destroyAllWindows()
 
-    def setErgoPosition(self, ergoPosition):
-        self.ergoPosition = ergoPosition
+    def setExpectedPosition(self, position):
+        self.expectedPosition = position
 
-    def getErgoPosition(self):
-        return self.ergoPosition
+    def getExpectedPosition(self):
+        return self.expectedPosition
 
-    def getCurrentPosition(self):
-        return self.currentPosition
+    def getFacePosition(self):
+        return self.facePosition
 
-    def getImage(self, toExtension):
-        try:
-            res, img = self.convert(self.img, toExtension)
-            if res:
-                return img
-        except:
-            pass
+    def convertImage(self, image, toExtension):
+        if image is not None:
+            try:
+                res, img = cv2.imencode(toExtension, image)
+                if res:
+                    return img
+            except:
+                pass
         return None
 
-    def setCameraIndex(self, camera_index):
-        self.camera_index = camera_index
+    def getCameraImage(self, toExtension):
+        return self.convertImage(self.camera_image, toExtension)
+
+    def setCameraIndex(self, index):
+        self.camera_index = index
 
     def getCameraIndex(self):
         return self.camera_index
 
-    def capture(self):
+    def loadCameras(self):
+        self.camera_previews = {}
+        for index in range(MAX_CAMERA_INDEX):
+            image = self.capture(index)
+            if image is not None:
+                self.camera_previews[index] = image
+        indexes = list(self.camera_previews.keys())
+        return indexes
+
+    def cameraPreview(self, index, toExtension):
+        return self.convertImage(self.camera_previews[index], toExtension)
+
+    def isErgonomic(self):
+        return self.goodErgonomic
+
+    def capture(self, camera_index):
         try:
-            webcam = cv2.VideoCapture(self.camera_index)
+            webcam = cv2.VideoCapture(camera_index)
             ret, img = webcam.read()
             webcam.release()
             if ret:
@@ -58,9 +79,6 @@ class ErgoCV(ErgoCVBase):
     def show(self, name, img):
         cv2.imshow(name, img)
         self.hasWindows = True
-
-    def convert(self, img, toExtension):
-        return cv2.imencode(toExtension, img)
 
     def keyPressed(self, delay=10):
         return chr(cv2.waitKey(delay) & 0xFF)
@@ -76,21 +94,18 @@ class ErgoCV(ErgoCVBase):
         bottom = top + height
         cv2.rectangle(img, (left, top), (right, bottom), color, tickness)
 
-    def isGoodErgonomic(self):
-        return self.goodErgonomic
-
     def processImage(self, img):
         faces = self.detectFaces(img)
         if len(faces) == 1:
-            self.currentPosition = faces[0]
-            if self.ergoPosition is None:
-                self.ergoPosition = faces[0]
-            self.drawRect(img, self.ergoPosition, COLOR_ERGO_POSITION, 8)
+            self.facePosition = faces[0]
+            if self.expectedPosition is None:
+                self.expectedPosition = faces[0]
+            self.drawRect(img, self.expectedPosition, COLOR_ERGO_POSITION, 8)
 
-            diff = self.currentPosition - self.ergoPosition
+            diff = self.facePosition - self.expectedPosition
             self.goodErgonomic = not (abs(diff[0]) > 30 or abs(diff[3]) > 20)
 
-            self.drawRect(img, self.currentPosition,
+            self.drawRect(img, self.facePosition,
                     COLOR_ERGO_GOOD if self.goodErgonomic else COLOR_ERGO_BAD,
                     2)
 
@@ -99,17 +114,21 @@ class ErgoCV(ErgoCVBase):
 
     def registerError(self):
         self.errors += 1
+        print('Warning! Error reading the video camera! ({0}/{1})'.format(
+            self.errors,
+            MAX_ERRORS))
         if self.errors > MAX_ERRORS:
             self.goodErgonomic = False
             self.img = None
             print('Warning! Too many errors reading the video camera!')
 
     def update(self):
-        img = self.capture()
-        if img is not None:
-            self.processImage(img)
-        else:
-            self.registerError()
+        if self.camera_index is not None:
+            img = self.capture(self.camera_index)
+            if img is not None:
+                self.processImage(img)
+            else:
+                self.registerError()
 
     def run_debug(self):
         key = ''
@@ -117,12 +136,12 @@ class ErgoCV(ErgoCVBase):
             key = self.keyPressed(500)
             self.update()
             if key == 'a':
-                self.ergoPosition = self.currentPosition
-            if self.currentPosition is not None:
+                self.expectedPosition = self.facePosition
+            if self.facePosition is not None:
                 print('{0} ergo: {1} current: {2}'.format(
-                    'GOOD' if self.isGoodErgonomic() else 'BAD',
-                    self.ergoPosition,
-                    self.currentPosition
+                    'GOOD' if self.isErgonomic() else 'BAD',
+                    self.expectedPosition,
+                    self.facePosition
                     ))
             if self.img is not None:
                 self.show('ErgoCV - Debug, [a] to adjust, [q] to exit', self.img)

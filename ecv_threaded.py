@@ -18,9 +18,9 @@ class ErgoCVThreaded(ErgoCVBase):
                 self.lock.acquire()
                 self.ergoCV.update()
                 print('{0} ergo: {1} current: {2}'.format(
-                    "GOOD" if self.ergoCV.isGoodErgonomic() else "BAD",
-                    self.ergoCV.getErgoPosition(),
-                    self.ergoCV.getCurrentPosition()
+                    "GOOD" if self.ergoCV.isErgonomic() else "BAD",
+                    self.ergoCV.getExpectedPosition(),
+                    self.ergoCV.getFacePosition()
                     ))
                 self.lock.release()
                 time.sleep(self.tick_delay)
@@ -29,11 +29,10 @@ class ErgoCVThreaded(ErgoCVBase):
             self.tick_delay = tick_delay
 
     def __init__(self):
-        self.ergoCV = ErgoCV(None)
+        self.ergoCV = ErgoCV()
         self.thread = ErgoCVThreaded.Container(self.ergoCV)
 
-    def start(self, camera_index):
-        self.ergoCV.setCameraIndex(camera_index)
+    def start(self):
         self.thread.start()
     
     def lockedDo(self, fn):
@@ -51,29 +50,35 @@ class ErgoCVThreaded(ErgoCVBase):
         else:
             return None
 
-    def setErgoPosition(self, ergoPosition):
-        self.lockedDo(lambda: self.ergoCV.setErgoPosition(ergoPosition))
+    def setExpectedPosition(self, position):
+        self.lockedDo(lambda: self.ergoCV.setExpectedPosition(position))
 
-    def getErgoPosition(self):
-        return self.lockedCall(lambda: self.ergoCV.getErgoPosition())
+    def getExpectedPosition(self):
+        return self.lockedCall(lambda: self.ergoCV.getExpectedPosition())
 
-    def getCurrentPosition(self):
-        return self.lockedCall(lambda: self.ergoCV.getCurrentPosition())
+    def getFacePosition(self):
+        return self.lockedCall(lambda: self.ergoCV.getFacePosition())
 
     def setTickDelay(self, tick_delay):
         self.lockedDo(lambda: self.thread.setTickDelay(tick_delay))
 
-    def getImage(self, toExtension):
-        return self.lockedCall(lambda: self.ergoCV.getImage(toExtension))
+    def getCameraImage(self, toExtension):
+        return self.lockedCall(lambda: self.ergoCV.getCameraImage(toExtension))
 
-    def setCameraIndex(self, camera_index):
-        self.lockedDo(lambda: self.ergoCV.setCameraIndex(camera_index))
+    def setCameraIndex(self, index):
+        self.lockedDo(lambda: self.ergoCV.setCameraIndex(index))
 
     def getCameraIndex(self):
         return self.lockedCall(lambda: self.ergoCV.getCameraIndex())
 
-    def isGoodErgonomic(self):
-        return self.lockedCall(lambda: self.ergoCV.isGoodErgonomic())
+    def loadCameras(self):
+        return self.lockedCall(lambda: self.ergoCV.loadCameras())
+
+    def cameraPreview(self, index, toExtension):
+        return self.lockedCall(lambda: self.ergoCV.cameraPreview(index, toExtension))
+
+    def isErgonomic(self):
+        return self.lockedCall(lambda: self.ergoCV.isErgonomic())
 
     def update(self):
         self.lockedDo(lambda: self.ergoCV.update())
