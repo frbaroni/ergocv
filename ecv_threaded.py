@@ -1,6 +1,5 @@
 import time
 import threading
-import cv2
 from ecv_base import ErgoCVBase
 from ecv_core import ErgoCV
 
@@ -79,7 +78,7 @@ class ErgoCVThreaded(ErgoCVBase):
 
     def cameraPreview(self, index, toExtension):
         return self.lockedCall(lambda:
-                                self.ergoCV.cameraPreview(index, toExtension))
+                               self.ergoCV.cameraPreview(index, toExtension))
 
     def isErgonomic(self):
         return self.lockedCall(lambda: self.ergoCV.isErgonomic())

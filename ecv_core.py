@@ -84,9 +84,6 @@ class ErgoCV(ErgoCVBase):
         cv2.imshow(name, img)
         self.hasWindows = True
 
-    def keyPressed(self, delay=10):
-        return chr(cv2.waitKey(delay) & 0xFF)
-
     def detectFaces(self, img):
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         faces = self.haarFace.detectMultiScale(img_gray)
@@ -136,7 +133,7 @@ class ErgoCV(ErgoCVBase):
     def run_debug(self):
         key = ''
         while key != 'q':
-            key = self.keyPressed(500)
+            key = input()
             self.update()
             if key == 'a':
                 self.expectedPosition = self.facePosition
