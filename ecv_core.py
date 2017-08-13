@@ -1,93 +1,40 @@
 import cv2
-from ecv_base import ErgoCVBase
+import sys
 
-MAX_CAMERA_INDEX = 3
-MAX_ERRORS = 5
 COLOR_ERGO_POSITION = (255, 0, 0)
 COLOR_ERGO_GOOD = (0, 255, 0)
 COLOR_ERGO_BAD = (0, 0, 255)
 
 
-class ErgoCV(ErgoCVBase):
+class CameraTools:
+    MAX_CAMERA_INDEX = 3
 
-    def __init__(self):
-        self.hasWindows = False
-        self.camera_previews = {}
-        self.camera_index = None
-        self.camera_image = None
-        self.expectedPosition = None
-        self.goodErgonomic = False
-        self.facePosition = None
-        self.errors = 0
-        self.haarFace = cv2.CascadeClassifier(
-            './haar/haarcascade_frontalface_default.xml'
-        )
+    def loadPreviews(self):
+        previews = {}
+        for i in range(self.MAX_CAMERA_INDEX):
+            previews[i] = self.capture(i)
+        return previews
 
-    def __del__(self):
-        if self.hasWindows:
-            cv2.destroyAllWindows()
-
-    def setExpectedPosition(self, position):
-        self.expectedPosition = position
-
-    def getExpectedPosition(self):
-        return self.expectedPosition
-
-    def getFacePosition(self):
-        return self.facePosition
-
-    def convertImage(self, image, toExtension):
-        if image is not None:
-            try:
-                res, img = cv2.imencode(toExtension, image)
-                if res:
-                    return img
-            except:
-                pass
-        return None
-
-    def getCameraImage(self, toExtension):
-        return self.convertImage(self.camera_image, toExtension)
-
-    def setCameraIndex(self, index):
-        self.camera_index = index
-
-    def getCameraIndex(self):
-        return self.camera_index
-
-    def loadCameras(self):
-        self.camera_previews = {}
-        for index in range(MAX_CAMERA_INDEX):
-            image = self.capture(index)
-            if image is not None:
-                self.camera_previews[index] = image
-        indexes = list(self.camera_previews.keys())
-        return indexes
-
-    def cameraPreview(self, index, toExtension):
-        return self.convertImage(self.camera_previews[index], toExtension)
-
-    def isErgonomic(self):
-        return self.goodErgonomic
-
-    def capture(self, camera_index):
+    def capture(self, camera):
         try:
-            webcam = cv2.VideoCapture(camera_index)
+            webcam = cv2.VideoCapture(camera)
             ret, img = webcam.read()
             webcam.release()
             if ret:
                 return img
         except:
-            return None
+            pass
+        return None
 
-    def show(self, name, img):
-        cv2.imshow(name, img)
-        self.hasWindows = True
-
-    def detectFaces(self, img):
-        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        faces = self.haarFace.detectMultiScale(img_gray)
-        return faces
+    def convert(self, image, mime):
+        if image is not None:
+            try:
+                res, img = cv2.imencode(mime, image)
+                if res:
+                    return img
+            except:
+                pass
+        return None
 
     def drawRect(self, img, dimensions, color=(255, 255, 255), tickness=3):
         (left, top, width, height) = dimensions
@@ -95,54 +42,96 @@ class ErgoCV(ErgoCVBase):
         bottom = top + height
         cv2.rectangle(img, (left, top), (right, bottom), color, tickness)
 
-    def processImage(self, img):
-        faces = self.detectFaces(img)
+
+class FaceDetector:
+    def __init__(self):
+        self.haarFace = cv2.CascadeClassifier(
+            './haar/haarcascade_frontalface_default.xml'
+        )
+
+    def detect(self, image):
+        img_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        return self.haarFace.detectMultiScale(img_gray)
+
+
+class ErgonomicHelper:
+    def __init__(self):
+        self.top = (0, 0)
+        self.left = (0, 0)
+        self.bottom = (0, 0)
+        self.right = (0, 0)
+        self.ergonomic = False
+
+    def setErgonomicTop(self, top, height):
+        self.top = (top, height)
+
+    def getErgonomicTop(self):
+        return self.top
+
+    def setErgonomicLeft(self, left, width):
+        self.left = (left, width)
+
+    def getErgonomicLeft(self):
+        return self.left
+
+    def setErgonomicBottom(self, bottom, height):
+        self.bottom = (bottom, height)
+
+    def getErgonomicBottom(self):
+        return self.bottom
+
+    def setErgonomicRight(self, right, width):
+        self.right = (right, width)
+
+    def getErgonomicRight(self):
+        return self.right
+
+    def isErgonomic(self):
+        return self.ergonomic
+
+    def update(self, top, left, bottom, right):
+        def inside(value, limits):
+            return (
+                       (self.limits[0] <= value)
+                       and
+                       (value <= self.limits[0] + self.limits[1])
+                   )
+        return (
+                inside(top, self.top) and
+                inside(left, self.left) and
+                inside(right, self.right) and
+                inside(bottom, self.bottom))
+
+    def drawErgonomics(self, image):
+        pass
+
+
+class ErgoCV:
+    def __init__(self):
+        self.camera = 0
+        self.faceDetector = FaceDetector()
+        self.cameraTools = CameraTools()
+        self.ergoHelper = ErgonomicHelper()
+
+    def setPrimaryCamera(self, camera):
+        self.camera = camera
+
+    def getPrimaryCamera(self):
+        return self.camera
+
+    def run(self):
+        image = self.cameraTools.capture(self.camera)
+        if not image:
+            print("Cannot capture from camera {}".format(self.camera),
+                  file=sys.stderr)
+            return
+        faces = self.faceDetector.detect(image)
+        if len(faces) == 0:
+            print('Detected no faces at the captured image', file=sys.stderr)
+            return
+        if len(faces) > 1:
+            print('Detected many faces at the captured image', file=sys.stderr)
+            return
         if len(faces) == 1:
-            self.facePosition = faces[0]
-            if self.expectedPosition is None:
-                self.expectedPosition = faces[0]
-            self.drawRect(img, self.expectedPosition, COLOR_ERGO_POSITION, 8)
-
-            diff = self.facePosition - self.expectedPosition
-            self.goodErgonomic = not (abs(diff[0]) > 30 or abs(diff[3]) > 20)
-
-            color = COLOR_ERGO_GOOD if self.goodErgonomic else COLOR_ERGO_BAD
-            self.drawRect(img, self.facePosition, color, 2)
-
-            self.img = img
-            self.errors = 0
-
-    def registerError(self):
-        self.errors += 1
-        print('Warning! Error reading the video camera! ({0}/{1})'.format(
-            self.errors,
-            MAX_ERRORS))
-        if self.errors > MAX_ERRORS:
-            self.goodErgonomic = False
-            self.img = None
-            print('Warning! Too many errors reading the video camera!')
-
-    def update(self):
-        if self.camera_index is not None:
-            img = self.capture(self.camera_index)
-            if img is not None:
-                self.processImage(img)
-            else:
-                self.registerError()
-
-    def run_debug(self):
-        key = ''
-        while key != 'q':
-            key = input()
-            self.update()
-            if key == 'a':
-                self.expectedPosition = self.facePosition
-            if self.facePosition is not None:
-                print('{0} ergo: {1} current: {2}'.format(
-                    'GOOD' if self.isErgonomic() else 'BAD',
-                    self.expectedPosition,
-                    self.facePosition
-                ))
-            if self.img is not None:
-                self.show(
-                    'ErgoCV - Debug, [a] to adjust, [q] to exit', self.img)
+            top, left, bottom, right = faces[1]
+            self.ergoHelper.update(top, left, bottom, right)

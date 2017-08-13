@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import sys
 import getopt
+import time
 from ecv_core import ErgoCV
 
 
@@ -29,8 +30,10 @@ def main(argv):
         elif opt in ("-e", "--ecv"):
             print("ErgoCV debug enabled")
             ergoCv = ErgoCV()
-            ergoCv.setCameraIndex(int(arg))
-            ergoCv.run_debug()
+            ergoCv.setPrimaryCamera(int(arg))
+            while True:
+                ergoCv.run()
+                time.sleep(2)
             sys.exit(0)
 
 
